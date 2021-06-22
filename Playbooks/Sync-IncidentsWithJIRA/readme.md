@@ -132,8 +132,6 @@ Edit the Access Policy and assign 'Secret - Get' permissions to the Key Vault Se
 The solution consists of four different Logic Apps:
 * Sync Incidents from Sentinel to JIRA (Sync-Incidents.json)
 * Sync status from JIRA to Sentinel (Sync-Status.json)
-* Sync assigned user from JIRA to Sentinel (Sync-AssignedUser.json)
-* Add a link to the JIRA incident to the Sentinel incident (Add-JiraLinkComment.json)
 
 This will enable a two way synchronization between JIRA and Sentinel. Not all Logic Apps are mandatory, you can deploy the ones your organization needs.
 
@@ -146,8 +144,8 @@ For more information about the different custom fields used, please check the JI
 
 ### Sync Incidents from Sentinel to JIRA 
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)]("https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FSync-IncidentsWithJIRA%2FPlaybooks%2FSync-Incidents.json)
-[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)]("https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FSync-IncidentsWithJIRA%2FPlaybooks%2FSync-Incidents.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)]("https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsanjay900%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FSync-IncidentsWithJIRA%2FPlaybooks%2FSync-Incidents.json)
+[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)]("https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsanjay900%2FAzure%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FSync-IncidentsWithJIRA%2FPlaybooks%2FSync-Incidents.json)
 
 This Logic App will create a new incident in JIRA when an incident in Sentinel is created.
 It uses the 'Incident Trigger' from Sentinel and is triggered by an Automation Rule (see Sentinel Configuration).
@@ -157,6 +155,7 @@ This Logic App does the following:
 * Retrieve the details from the Account Entity
 * Check which customer this incident is coming from (to add the right organization in JIRA)
 * Create JIRA ticket through an API call
+* Add a link to the JIRA ticket on the sentinel ticket
 
 It uses two connections:
 * One connection to Sentinel through a Service Principal (to be configured when deploying the Logic App)
@@ -169,46 +168,20 @@ If you do not use organizations in JIRA, you can remove the switch.
 
 ### Sync status from JIRA to Sentinel
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)]("https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FSync-IncidentsWithJIRA%2FPlaybooks%2FSync-Status.json)
-[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)]("https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FSync-IncidentsWithJIRA%2FPlaybooks%2FSync-Status.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)]("https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsanjay900%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FSync-IncidentsWithJIRA%2FPlaybooks%2FSync-Status.json)
+[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)]("https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsanjay900%2FAzure%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FSync-IncidentsWithJIRA%2FPlaybooks%2FSync-Status.json)
 
-This Logic App will change the status in Sentinel when the status has been changed in JIRA.
+This Logic App will change the status in Sentinel when the status has been changed in JIRA. This also includes the assignee and comments.
 It uses an HTTP trigger which is triggered from a JIRA Automation Rule.
 It's important you use the same closure reason in JIRA as the ones in Sentinel, otherwise the sync will fail.
 
 It uses one connections:
 * One connection to Sentinel through a Service Principal (to be configured when deploying the Logic App)
 
-### Sync assigned user from JIRA to Sentinel
-
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)]("https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FSync-IncidentsWithJIRA%2FPlaybooks%2FSync-AssignedUser.json)
-[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)]("https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FSync-IncidentsWithJIRA%2FPlaybooks%2FSync-AssignedUser.json)
-
-When a incident is assigned in JIRA, this will assign the correct user inside of Azure Sentinel.
-It uses an HTTP trigger which is triggered from a JIRA Automation Rule when the assigned user of an incident is changed.
-
-It will retrieve the client secret for the service principal with permissions to retrieve users in your Azure Active Directory. With this, it will query the user and retrieve the AAD Object ID from that user. Wit this information, we will update the incident in Azure Sentinel.
-
-There is a check built-in to make sure that JIRA provides the assigned user. Sometimes it does not and then we don't need to update the incident in Sentinel.
-* One connection to Sentinel through a Service Principal (to be configured when deploying the Logic App)
-* One connection to a Key Vault to retrieve the Secret for the Service Principal with AAD permissions (also configured when deploying the Logic App)
-
-### Add a link to the JIRA incident to the Sentinel incident
-
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)]("https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FSync-IncidentsWithJIRA%2FPlaybooks%2FAdd-JIRALinkComment.json)
-[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)]("https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FSync-IncidentsWithJIRA%2FPlaybooks%2FAdd-JIRALinkComment.json)
-
-This Logic App will add a URL to the JIRA incident as a comment to the Sentinel Incident.
-It uses an HTTP trigger which is triggered from a JIRA Automation Rule.
-
-It will add the link to the JIRA Customer Portal, which enables a customer to view the details of an incident inside JIRA.
-It uses one connections:
-* One connection to Sentinel through a Service Principal (to be configured when deploying the Logic App)
-
 ## 5. Deploy Azure Function
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)]("https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FSync-IncidentsWithJIRA%2FPlaybooks%2FSync-Status.json)
-[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)]("https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FSync-IncidentsWithJIRA%2FPlaybooks%2FSync-Status.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)]("https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsanjay900%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FSync-IncidentsWithJIRA%2FPlaybooks%2FSync-Status.json)
+[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)]("https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsanjay900%2FAzure%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FSync-IncidentsWithJIRA%2FPlaybooks%2FSync-Status.json)
 
 To sync incident comments from JIRA to Azure Sentinel an Azure Function is used. This Function App contains one Powershell Function.
 There are two types of comments in JIRA: internal and public comments. This script will only sync the public comments, so that customers don't have access to the internal ones.
@@ -237,6 +210,9 @@ If you only want to sync certain incidents, choose the right condition.
 
 For actions, choose 'Run Playbook' and select the 'Sync-Incidents' Playbook.
 ![Automation Rule](Images/Sentinel%20-%20Automation%20Rule.png)
+
+## 7. Azure Proxy
+JIRA does not like long URLs being used for webhooks. For this reason, you may need to set up a azure proxy. To do this, create a Function App running windows, and then once it is set up, you can add a proxy that acts as a shortened URL that points to your sentinel webhook trigger.
 
 ## Conclusion
 After this solution, you are able to work on Azure Sentinel incidents while staying in your trusted ITSM tool.
