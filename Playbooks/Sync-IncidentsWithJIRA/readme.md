@@ -32,27 +32,20 @@ To implement this solution, a few different steps need to be done:
 6. Create Sentinel Automation Rule
 
 ## 1. Create Service Principals
-The tool requires a couple of service principals for authentication to different services:
+The tool requires a service principal for authentication to different services:
 * Authentication to Azure Sentinel
 * Authentication to Key Vault to retrieve secrets
-* Authentication to AAD to retrieve user ID's (for assignin incidents in Sentinel)
 
 ### Azure Sentinel Service Principal
 This Service Principal needs to have at least Azure Sentinel Operator permissions and it used in the following:
-* All Logic Apps
-* Comment Sync Function
-  
-### Key Vault ServicePrincipal
 This Service Principal needs to have the 'Secret - Get' Permission on the Key Vault holding all the secrets.
-This Service Principal is used in:
 * All Logic Apps
 * Comment Sync Function
-  
-### AAD Service Principal
-This Service Principal needs to have User.Read.All application permissions.
-This Service Principal is used in the Logic app 'Sync-AssignedUser.
 
-## 2. JIRA Configuration
+## 2. Azure Proxy
+JIRA does not like long URLs being used for webhooks. For this reason, you may need to set up a azure proxy. To do this, create a Function App running windows, and then once it is set up, you can add a proxy that acts as a shortened URL that points to your sentinel webhook trigger. To do this, click on the Proxy button in the menu of the Function App, and add a proxy pointing to the long azure URL.
+
+## 3. JIRA Configuration
 ### JIRA Custom Fields
 #### Introduction
 A lot of the Sentinel specific information is stored inside of Custom Fields in JIRA which need to be created.
@@ -82,42 +75,14 @@ All Logic Apps need to be updated with the correct ID's of the fields.
 The Att&ck Tactics list contains all Sentinel Tactics.
 The Closure Reason contains all valid Sentinel Closure Reasons
 
-### JIRA Automation Rules
-In order to synchronize changes from JIRA to Sentinel, Automation for JIRA is used to trigger Logic Apps when certain conditions are met.
-Automation for JIRA is an integrated plugin that is free to use for JIRA Service Management.
 
-This document will describe the different automation rules that are necessary to trigger the correct Logic Apps/Functions.
+### JIRA Webhook
+In order to synchronize changes from JIRA to Sentinel, A webhook was created that sends updates back to sentinel.
 
-In almost every rule, the step 're-fetch issue data' is used. This will make sure we are using the most up to date information in our Logic Apps.
-If you are not using this, you might encouter failures.
+Under administration and system, there is an option to add webhooks. Add a webhook that captures the "Issue: updated" and "Comment: created, updated, deleted" events, and sends them to sentinel via the proxy.
 
-Navigate to the project settings, then go to Automation to create rules.
 
-#### Sync Status
-This automation rule has a trigger 'Issue Transitioned' and will trigger the Logic App 'Sync-Status'. 
-Provide the POST URL of the Logic App in the 'Send Web Request' Step. As webhook data, specify 'issue data'.
-
-![Automation Rule](Images/JIRA%20-%20Automation%20-%20Sync%20Status.png)
-
-#### Sync Assigned User
-This automation rule has a trigger 'Issue Assigned' and will trigger the Logic App 'Sync-AssignedUser'. 
-Provide the POST URL of the Logic App in the 'Send Web Request' Step. As webhook data, specify 'issue data'.
-
-![Automation Rule](Images/JIRA%20-%20Automation%20-%20Sync%20Assigned%20User.png)
-
-#### Create Link
-This automation rule has a trigger 'Issue created' and will trigger the Logic App 'Add-JIRALinkComment'. 
-Provide the POST URL of the Logic App in the 'Send Web Request' Step. As webhook data, specify 'issue data'.
-
-![Automation Rule](Images/JIRA%20-%20Automation%20-%20Create%20Link.png)
-
-#### Sync comment
-This automation rule will trigger the function app to sync public comments to Azure Sentinel.
-Provide the POST URL of the Sync Comment Function in the 'Send Web Request' Step. As webhook data, specify 'issue data'.
-
-![Automation Rule](Images/JIRA%20-%20Automation%20-%20Sync%20Comment.png)
-
-## 3. Deploy Key Vault
+## 4. Deploy Key Vault
 The Key Vault is used to store three secrets:
 * One for the AAD Service Principal
 * One for the Azure Sentinel Service Principal
@@ -128,7 +93,7 @@ The names will need to be provided when deploying the ARM Templates from the Log
 
 Edit the Access Policy and assign 'Secret - Get' permissions to the Key Vault Service Principal.
 
-## 4. Deploy Logic Apps
+## 5. Deploy Logic Apps
 The solution consists of four different Logic Apps:
 * Sync Incidents from Sentinel to JIRA (Sync-Incidents.json)
 * Sync status from JIRA to Sentinel (Sync-Status.json)
@@ -178,7 +143,7 @@ It's important you use the same closure reason in JIRA as the ones in Sentinel, 
 It uses one connections:
 * One connection to Sentinel through a Service Principal (to be configured when deploying the Logic App)
 
-## 5. Deploy Azure Function
+## 6. Deploy Azure Function
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsanjay900%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FSync-IncidentsWithJIRA%2FPlaybooks%2FSync-Status.json)
 [![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsanjay900%2FAzure%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FSync-IncidentsWithJIRA%2FPlaybooks%2FSync-Status.json)
@@ -200,7 +165,7 @@ Paste the code from the PS1 file in the Function and change the following variab
 Enable the Managed Identity (Identity => System Assigned).
 Provide 'Secret - Get' permissions to the Function app in the Access Policies of the Key Vault.
 
-## 6. Sentinel Automation Rule
+## 7. Sentinel Automation Rule
 In order to trigger the Logic App that creates incidents in JIRA, we use an Automation Rule in Sentinel.
 This will enable us to trigger a Logic App (Playbook) each time an incident is created.
 
@@ -210,9 +175,6 @@ If you only want to sync certain incidents, choose the right condition.
 
 For actions, choose 'Run Playbook' and select the 'Sync-Incidents' Playbook.
 ![Automation Rule](Images/Sentinel%20-%20Automation%20Rule.png)
-
-## 7. Azure Proxy
-JIRA does not like long URLs being used for webhooks. For this reason, you may need to set up a azure proxy. To do this, create a Function App running windows, and then once it is set up, you can add a proxy that acts as a shortened URL that points to your sentinel webhook trigger.
 
 ## Conclusion
 After this solution, you are able to work on Azure Sentinel incidents while staying in your trusted ITSM tool.
